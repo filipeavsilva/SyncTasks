@@ -1,4 +1,9 @@
-import properties
+import enums
+
+TaskStatus = enums.enum(OPEN = 'Open',
+		                    COMPLETED = 'Completed',
+												CANCELED = 'Canceled',
+												OVERDUE = 'Overdue')
 
 class TaskAttribute:
 	"""Represents a Task Attribute, be it a tag, a due date, a star..."""
@@ -8,34 +13,31 @@ class TaskAttribute:
 
 
 class Task:
-	"""Represents a Task item, as specified by the Google Tasks API"""
+	"""Represents a service- or filetype- independent Task"""
 
-	def __init__(self, title, parent, deepness, notes):
-		self.kind = properties.GTASKS_KIND_TASK
+	def __init__(self, text, notes, parent=None):
 		self.id = ""
-		self.etag = ""
-		self.title = title
-		self.updated = None
+		self.text = text
 		self.selfLink = None
-		self.parent = parent
-		self.deepnessLevel = deepness
 		self.notes = notes
-		self.status = properties.GTASKS_TASKSTATUS_NEEDSACTION
 		self.due = None
-		self.completed = None
-		self.deleted = False
-		self.hidden = False
+		self.status = TaskStatus.OPEN
 		self.attributes = [] #List of TaskAttribute
+		self.parent = parent #Parent task
+		self.children = [] #List of children Tasks
 
 
 	def __str__(self):
-		result = self.title
+		result = self.text
 		
 		if self.notes is not None:
-			result += ' [' + self.notes + ']'
+			result += ' [{0}]'.format(self.notes)
 
-		if self.completed is not None:
-			result += ' (Completed)'
+		if self.status is not None:
+			result += ' ({0})'.format(str(self.status))
+
+		if self.children is not None and len(self.children) > 0:
+			result += ' ({0} children)'.format(len(self.children))
 
 		return result
 

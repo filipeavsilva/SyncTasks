@@ -1,0 +1,1 @@
+import pathInit #Search in the right pathsfrom tasks import Taskif __name__ == '__main__':	print(Task('Test', 'Just a test, nothing to see here...', None))
