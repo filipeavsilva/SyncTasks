@@ -1,5 +1,4 @@
-from tasks import Task, TaskList
-import properties
+from tasks import Task, TaskAttribute
 
 import os.path
 import re
@@ -7,119 +6,45 @@ import codecs
 
 #Constants for dictionary keys
 TASK = 'task'
-DEEP = 'deepness'
+DEEP = 'depth'
 
-TITLE = 'title'
+TEXT = 'text'
 TAGS = 'tags'
 
-def parseTask(txtLine):
-	""" Takes a line of text representing a task and returns all its constituents """
-	taskParts = {}
-	tagList = re.findall(r'@\S+', txtLine, re.UNICODE) #finds all the tags, including value parameters
-	tagsAndValues = []
 
-	for tagStr in tagList:
-		tagBody = re.findall('@([^(]+)')[0]
-		tagValue = re.findall('\(([^)]+)\)')[0]
-
-		tagsAndValues.append([tagBody, tagValue])
-
-	taskParts[TITLE] = txtLine[:-1] #Remove newline
-	taskParts[TAGS] = tagsAndValues
-
-	return taskParts
-
-
-def getLast(lst):
-	"""Helper function to return the last element of a list.
-		 If the list is empty returns None. """
-	if len(lst) > 0:
-		return lst[-1]
-	else:
-		return None
-
+######################################################################################## Read file #
 def readFile(path):
-	"""Reads a file from disk and parses it into a task list."""
+	"""	Reads a file from disk and parses it into tasks.	"""
 
-	tasksFile = open(path, 'r')
-	tasklist = TaskList.TaskList(os.path.splitext(os.path.basename(path))[0])
-	parentStack = [] #Initialize the stack of parent tasks
+	tasksFile = codecs.open(path, 'r', encoding='utf-8')
+	tasklist = []
+	currTask = None
 
-	task = None
-
+	
 	for line in tasksFile:
-		deepness = 1
-		line = line.rstrip() #Remove the trailing whitespaces (newlines, mainly)
+		thing = parseLine(line)
 
-		while line.startswith("\t"): #starts with tab
-			deepness += 1		#Add a deepness level to the current line
-			line = line[1:] #Remove the leading tab
+		if type(thing) == 'str': #It's a note
+			if currTask is not None:
+				currTask.notes += thing
+			#else, do nothing
 
-		if line.startswith("- ") or line.endswith(':'): #It's a task or a project (both are saved as tasks)
-			if task is not None:		#There's a previous task	
-				tasklist.append(task) #Commit previous task to the list
+		elif isinstance(thing, Task):
+			#If the newfound task is shallower than the current, climb the hierarchy
+			# until a suitable parent is found (or add it to top level)
+			while currTask is not None and thing.depth <= currTask.depth:
+				currTask = currTask.parent
 
-			if (getLast(parentStack) is None and deepness > 1) or	deepness > getLast(parentStack)[DEEP]:
-						parentStack.append({TASK:task, DEEP:deepness}) #This'll be parent to the next ones
+			if currTask is None:
+				tasklist.append(thing) #Add to the top level
+				currTask = thing
 			else:
-				if deepness < getLast(parentStack)[DEEP]:
-					parentStack.pop() #Up one level
-
-			#Get the new task's parent from the stack
-			parent = getLast(parentStack)
-			if parent is not None:
-				parent = parent[0]
-
-			#Create the task object
-			if line.startswith("- "): #It's a regular task
-				taskParts = parseTask(line[2:])
-				task = Task.Task(taskParts[TITLE], parent, deepness, '')
-				task.addAttributeList(taskParts[TAGS])
-			else:	#It's a project
-				task = Task(line[:-1], parent, deepness, '') #Remove ':' from the task title
-				task.addAttribute(properties.TASKPAPER_ISPROJECT_ATTR, '') #Mark it as a project
-
-		else:
-			if task is not None: 
-				task.notes += line
-
-	#Put last task in the list
-	if task is not None:
-		tasklist.append(task)
-
+				currTask.addChild(thing) #Add as a child and proceed from here
+				currTask = thing
 
 	return tasklist
 
-def getFileString(tasklist):
-	"""Serializes a tasklist to a list in the taskpaper format"""
-	fileText = ""
-
-	for task in tasklist.items:
-		isProject = False
-		taskLine = ""
-
-		deepnessTabs = "\t"*(task.deepnessLevel)
-		taskLine += task.title
-		
-		for attr in task.attributes:
-			if attr.key == properties.TASKPAPER_ISPROJECT_ATTR:
-				isProject = True
-			else:
-				taskLine += " @" + attr.key
-				if (attr.value is not None and attr.value != ""):
-					taskLine += "("+attr.value+")"
-		
-		if isProject:
-			taskLine = "\n" + taskLine + ":"
-		else:
-			taskLine = "- " + taskLine
-
-		taskLine = deepnessTabs + taskLine
-
-		taskLine += "\n" + task.notes.replace("\n", "\n"+("\t"*task.deepnessLevel)) #Indent notes
-		fileText += taskLine
-	return fileText
-
+######################################################################################## Write file #
 def writeFile(tasklist, path):
 	"""Writes the task list to a taskpaper file"""
 	fileText = getFileString(tasklist)
@@ -128,3 +53,72 @@ def writeFile(tasklist, path):
 	file.write(fileText)
 	file.close()
 
+
+
+################################################################################# Auxilliary methods #
+
+def last(lst):
+	"""Helper function to return the last element of a list.
+		 If the list is empty returns None. """
+	if lst is not None and len(lst) > 0:
+		return lst[-1]
+	else:
+		return None
+
+def parseLine(txtLine):
+	""" Parses a line of text. Returns a Task, or the line itself (string) if not a task. """
+	DEPTH = 0
+	TEXT = 1
+	TAGS = 2
+	TAG_NAME = 0
+	TAG_VALUE = 2
+
+	taskRE = re.compile(r'(\t*)-(\s.*)|(.*):', re.UNICODE) #Matches tasks and projects
+	taskDepthRE = re.compile(r'\s')
+	tagsRE = re.compile(r'@\S+', re.UNICODE) #Matches a task's tags
+	tagPartsRE = re.compile(r'@([^(]+)(\(([^)]+)\))?')
+
+	matches = taskRE.findall(txtLine)
+	if matches != []: #It's a task
+		match = matches[0]
+		task = Task(match[TEXT])
+		task.depth = 	max(1, len(taskDepthRE.findall(match[DEPTH])))
+		#Add all the tags as attributes to the task
+		for tag in tagsRE.findall(match[TAGS]):
+			tagParts = tagPartsRE.findall(tag)[0]
+			task.addAttribute('tag-{0}'.format(tagParts[TAG_NAME]), tagParts[TAG_VALUE])
+		return task
+	else: #Not a task. Either empty or a task's note
+		return txtLine.strip()
+
+
+#TODO: Upgrade this crap
+def getFileString(tasklist):
+	"""Serializes a task list to a list in the taskpaper format"""
+	fileText = ""
+
+	for task in tasklist:
+		#isProject = False
+		#taskLine = ""
+
+		#depthTabs = "\t"*(task.depthLevel)
+		#taskLine += task.title
+		
+		#for attr in task.attributes:
+			#if attr.key == properties.TASKPAPER_ISPROJECT_ATTR:
+				#isProject = True
+			#else:
+				#taskLine += " @" + attr.key
+				#if (attr.value is not None and attr.value != ""):
+					#taskLine += "("+attr.value+")"
+		
+		#if isProject:
+			#taskLine = "\n" + taskLine + ":"
+		#else:
+			#taskLine = "- " + taskLine
+
+		#taskLine = depthTabs + taskLine
+
+		#taskLine += "\n" + task.notes.replace("\n", "\n"+("\t"*task.depthLevel)) #Indent notes
+		#fileText += taskLine
+	return fileText
