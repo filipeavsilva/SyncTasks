@@ -5,15 +5,6 @@ TaskStatus = enums.enum(OPEN = 'Open',
 												CANCELED = 'Canceled',
 												OVERDUE = 'Overdue')
 
-class TaskAttribute:
-	"""Represents a Task Attribute, be it a tag, a due date, a star..."""
-	def __init__(self, key, value):
-		self.key = key
-		self.value = value if value is not None else ''
-
-	def __str__(self):
-		return 'Attrib: ({} => {})'.format(self.key, self.value)
-
 
 class Task:
 	"""Represents a service- or filetype- independent Task"""
@@ -25,7 +16,7 @@ class Task:
 		self.notes = notes
 		self.due = None
 		self.status = TaskStatus.OPEN
-		self.attributes = [] #List of TaskAttribute
+		self.attributes = {}
 		self.children = [] #List of children Tasks
 		self.parent = None #Initialize the parent task as None
 		if parent is not None and isinstance(parent, self.__class__): #Parent is not None and it's a Task
@@ -46,21 +37,18 @@ class Task:
 
 		return result
 
-	def addAttribute(self, key, value):
-		"""Adds an atribute to the attribute list"""
+	def setAttribute(self, key, value):
+		"""Set the value of an attribute"""
 
-		self.attributes.append(TaskAttribute(key, value))
+		self.attributes[key] = value
 
-	def addAttributeList(self, attrList):
-		"""Adds a whole list of attributes to the task's attribute list.
+	def getAttribute(self, key):
+		"""Get the value of an attribute. Return None if the key does not exist."""
 
-			Expects a list of two-element lists, in the form [key, value]
-
-			e.g. [[key1, value1], [key2, value2], [key3, value3]]
-		"""
-		for kvPair in attrList:
-			print(kvPair)
-			self.attributes.append(TaskAttribute(attrList[0], attrList[1]))
+		try:
+			return self.attributes[key]
+		except KeyError:
+			return None
 
 	def addChild(self, childTask):
 		"""Adds a task as a child of this one."""

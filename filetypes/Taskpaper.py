@@ -1,4 +1,4 @@
-from tasks import Task, TaskAttribute
+from tasks import Task
 
 import os.path
 import re
@@ -32,7 +32,7 @@ def readFile(path):
 		elif isinstance(thing, Task):
 			#If the newfound task is shallower than the current, climb the hierarchy
 			# until a suitable parent is found (or add it to top level)
-			while currTask is not None and thing.depth <= currTask.depth:
+			while currTask is not None and thing.getAttribute('taskpaper-depth') <= currTask.getAttribute('taskpaper-depth'):
 				currTask = currTask.parent
 
 			if currTask is None:
@@ -82,11 +82,11 @@ def parseLine(txtLine):
 	if matches != []: #It's a task
 		match = matches[0]
 		task = Task(match[TEXT])
-		task.depth = 	max(1, len(taskDepthRE.findall(match[DEPTH])))
+		task.setAttribute('taskpaper-depth', max(1, len(taskDepthRE.findall(match[DEPTH])))) #Keep the depth as an attribute
 		#Add all the tags as attributes to the task
 		for tag in tagsRE.findall(match[TAGS]):
 			tagParts = tagPartsRE.findall(tag)[0]
-			task.addAttribute('tag-{0}'.format(tagParts[TAG_NAME]), tagParts[TAG_VALUE])
+			task.setAttribute('tag-{0}'.format(tagParts[TAG_NAME]), tagParts[TAG_VALUE])
 		return task
 	else: #Not a task. Either empty or a task's note
 		return txtLine.strip()
@@ -98,6 +98,7 @@ def getFileString(tasklist):
 	fileText = ""
 
 	for task in tasklist:
+		pass
 		#isProject = False
 		#taskLine = ""
 
