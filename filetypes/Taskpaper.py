@@ -24,8 +24,8 @@ def readFile(path):
 	for line in tasksFile:
 		thing = parseLine(line)
 
-		if type(thing) == 'str': #It's a note
-			if currTask is not None:
+		if type(thing) in [str, unicode]: #It's a note
+			if len(thing) > 0 and currTask is not None:
 				currTask.notes += thing
 			#else, do nothing
 
@@ -47,7 +47,33 @@ def readFile(path):
 ######################################################################################## Write file #
 def writeFile(tasklist, path):
 	"""Writes the task list to a taskpaper file"""
-	fileText = getFileString(tasklist)
+
+	def task2Str(task):
+		""" Writes a single task into a string."""
+		text = ''
+
+		tabs = '\t' * task.getAttribute('taskpaper-depth')
+		text += tabs
+
+		if task.getAttribute('taskpaper-is-project') is not None:
+			text += '{}:'.format(task.text)
+		else:
+			text += '- {}'.format(task.text)
+
+		for tag in [(key.replace('tag-', ''), task.getAttribute(key)) for key in task.attributes if key.startswith('tag-')]:
+			text += ' @{}{}'.format(tag[0], '('+tag[1]+')' if len(tag[1]) > 0 else '')
+
+		if task.notes is not None and len(task.notes) > 0:
+			text += '\n' + tabs + task.notes
+
+		for child in task.children:
+			text += '\n' + task2Str(child)
+
+		return text
+
+	fileText = ""
+	for task in tasklist:
+		fileText += task2Str(task) + '\n'
 
 	file = codecs.open(path, 'w', encoding='utf-8') #Overwrites or creates the file
 	file.write(fileText)
@@ -55,7 +81,9 @@ def writeFile(tasklist, path):
 
 
 
-################################################################################# Auxilliary methods #
+
+
+########################################################################## Auxilliary methods #
 
 def last(lst):
 	"""Helper function to return the last element of a list.
@@ -68,58 +96,41 @@ def last(lst):
 def parseLine(txtLine):
 	""" Parses a line of text. Returns a Task, or the line itself (string) if not a task. """
 	DEPTH = 0
-	TEXT = 1
-	TAGS = 2
+	TEXT_TASK = 1
+	TEXT_PROJECT = 2
+	TAGS_PROJECT = 3
+
 	TAG_NAME = 0
-	TAG_VALUE = 2
+	TAG_VALUE = 1
 
-	taskRE = re.compile(r'(\t*)-(\s.*)|(.*):', re.UNICODE) #Matches tasks and projects
-	taskDepthRE = re.compile(r'\s')
-	tagsRE = re.compile(r'@\S+', re.UNICODE) #Matches a task's tags
-	tagPartsRE = re.compile(r'@([^(]+)(\(([^)]+)\))?')
+	taskRE = re.compile(r'(\t*)(?:(?:-\s(.+))|(?:(\S.+):([^:]*)))', re.UNICODE) #Matches tasks and projects
+	tagsRE = re.compile(r'@([^(\s]+)(?:\(([^)]+)?\))?', re.UNICODE) #Matches a task's tags
 
-	matches = taskRE.findall(txtLine)
-	if matches != []: #It's a task
-		match = matches[0]
-		task = Task(match[TEXT])
-		task.setAttribute('taskpaper-depth', max(1, len(taskDepthRE.findall(match[DEPTH])))) #Keep the depth as an attribute
+	match = taskRE.search(txtLine)
+	if match is not None: #It's a task
+		match = match.groups()
+		text = match[TEXT_TASK]
+		
+		if text is None or len(text) == 0: #Not a task, then it's a project
+			text = match[TEXT_PROJECT] + (match[TAGS_PROJECT] if match[TAGS_PROJECT] is not None else '')
+			is_project = True
+		else:
+			text = match[TEXT_TASK]
+			is_project = False
+
+		#Extract all the tags from the text
+		tags = tagsRE.findall(text)
+		text = tagsRE.sub('', text).strip()
+		
+		task = Task(text)
+		task.setAttribute('taskpaper-depth', len(match[DEPTH])) #Keep the depth as an attribute
+		if is_project:
+			task.setAttribute('taskpaper-is-project')
+
 		#Add all the tags as attributes to the task
-		for tag in tagsRE.findall(match[TAGS]):
-			tagParts = tagPartsRE.findall(tag)[0]
-			task.setAttribute('tag-{0}'.format(tagParts[TAG_NAME]), tagParts[TAG_VALUE])
+		for tag in tags:
+			task.setAttribute('tag-{0}'.format(tag[TAG_NAME]), tag[TAG_VALUE])
 		return task
 	else: #Not a task. Either empty or a task's note
 		return txtLine.strip()
 
-
-#TODO: Upgrade this crap
-def getFileString(tasklist):
-	"""Serializes a task list to a list in the taskpaper format"""
-	fileText = ""
-
-	for task in tasklist:
-		pass
-		#isProject = False
-		#taskLine = ""
-
-		#depthTabs = "\t"*(task.depthLevel)
-		#taskLine += task.title
-		
-		#for attr in task.attributes:
-			#if attr.key == properties.TASKPAPER_ISPROJECT_ATTR:
-				#isProject = True
-			#else:
-				#taskLine += " @" + attr.key
-				#if (attr.value is not None and attr.value != ""):
-					#taskLine += "("+attr.value+")"
-		
-		#if isProject:
-			#taskLine = "\n" + taskLine + ":"
-		#else:
-			#taskLine = "- " + taskLine
-
-		#taskLine = depthTabs + taskLine
-
-		#taskLine += "\n" + task.notes.replace("\n", "\n"+("\t"*task.depthLevel)) #Indent notes
-		#fileText += taskLine
-	return fileText

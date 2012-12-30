@@ -24,20 +24,28 @@ class Task:
 
 
 	def __str__(self):
-		result = self.text
+
+		return 'Task{{Text: "{0}", Notes: "{1}", Attributes: "{2}", Children: "{3}"}}'.format(self.text if self.text is not None else "''",
+				self.notes if self.notes is not None else "''", self.attributes, len(self.children))
+
+		#result = '=> '
+		#result += self.text
 		
-		if self.notes is not None:
-			result += ' [{0}]'.format(self.notes)
+		#if self.notes is not None:
+			#result += ' [{0}]'.format(self.notes)
 
-		if self.status is not None:
-			result += ' ({0})'.format(str(self.status))
+		##if self.status is not None:
+			##result += ' ({0})'.format(str(self.status))
 
-		if self.children is not None and len(self.children) > 0:
-			result += ' ({0} children)'.format(len(self.children))
+		#if self.children is not None and len(self.children) > 0:
+			#result += ' ({0} children)'.format(len(self.children))
+
+		#for child in self.children:
+			#result += '\n\t{0}'.format(str(child))
 
 		return result
 
-	def setAttribute(self, key, value):
+	def setAttribute(self, key, value=True):
 		"""Set the value of an attribute"""
 
 		self.attributes[key] = value
