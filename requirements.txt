@@ -1,0 +1,7 @@
+gevent
+testify
+
+#Google Tasks service
+google-api-python-client
+oauth2client
+

@@ -19,8 +19,8 @@ def parseTask(txtLine):
 	tagsAndValues = []
 
 	for tagStr in tagList:
-		tagBody = re.findall('@([^(]+)')[0]
-		tagValue = re.findall('\(([^)]+)\)')[0]
+		tagBody = re.findall('@([^(]+)', tagStr, re.UNICODE)[0]
+		tagValue = re.findall('\(([^)]+)\)', tagStr, re.UNICODE)[0]
 
 		tagsAndValues.append([tagBody, tagValue])
 
@@ -42,7 +42,7 @@ def readFile(path):
 	"""Reads a file from disk and parses it into a task list."""
 
 	tasksFile = open(path, 'r')
-	tasklist = TaskList.TaskList(os.path.splitext(os.path.basename(path))[0])
+	tasklist = Tasklist(os.path.splitext(os.path.basename(path))[0])
 	parentStack = [] #Initialize the stack of parent tasks
 
 	task = None
@@ -59,7 +59,7 @@ def readFile(path):
 			if task is not None:		#There's a previous task	
 				tasklist.append(task) #Commit previous task to the list
 
-			if (getLast(parentStack) is None and deepness > 1) or	deepness > getLast(parentStack)[DEEP]:
+			if (getLast(parentStack) is None and deepness >= 1) or	deepness > getLast(parentStack)[DEEP]:
 						parentStack.append({TASK:task, DEEP:deepness}) #This'll be parent to the next ones
 			else:
 				if deepness < getLast(parentStack)[DEEP]:
@@ -68,12 +68,12 @@ def readFile(path):
 			#Get the new task's parent from the stack
 			parent = getLast(parentStack)
 			if parent is not None:
-				parent = parent[0]
+				parent = parent[TASK]
 
 			#Create the task object
 			if line.startswith("- "): #It's a regular task
 				taskParts = parseTask(line[2:])
-				task = Task.Task(taskParts[TITLE], parent, deepness, '')
+				task = Task(taskParts[TITLE], parent, deepness, '')
 				task.addAttributeList(taskParts[TAGS])
 			else:	#It's a project
 				task = Task(line[:-1], parent, deepness, '') #Remove ':' from the task title

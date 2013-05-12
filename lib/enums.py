@@ -1,0 +1,1 @@
+#Simple way to define enumerations (based on answer from StackOverflow)def enum(**values):	"""Creates a new type with the enum values as properties"""	enums = dict(values) #Create a dictionary from the values	enums['values'] = enums.values() #The list of values.	                                 #Allows to find if a value is in the enum	return type('Enum', (), enums)

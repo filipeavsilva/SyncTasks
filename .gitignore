@@ -1,0 +1,7 @@
+*.swp
+*.pyc
+properties.py
+dependencies.txt
+tasks.dat
+*.un~
+env
