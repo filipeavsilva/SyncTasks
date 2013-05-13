@@ -6,12 +6,6 @@ Importing this module allows access to the variables as simple properties of the
 """
 
 #Google Tasks -specific properties
-GTASKS_KIND_TASKLIST = 'tasks#tasks'
-GTASKS_KIND_TASK = 'tasks#task'
-
-GTASKS_TASKSTATUS_NEEDSACTION = 'needsAction'
-GTASKS_TASKSTATUS_COMPLETED = 'completed'
-
 GTASKS_AUTH_CLIENT_ID = ''
 GTASKS_AUTH_CLIENT_SECRET = ''
 GTASKS_AUTH_REDIRECT_URIS = ['urn:ietf:wg:oauth:2.0:oob', 'http://localhost']
