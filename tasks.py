@@ -1,27 +1,24 @@
 from lib.enums import enum
 import properties
 
-class TaskAttribute:
-	"""Represents a Task Attribute, be it a tag, a star, etc."""
-	def __init__(self, key, value):
-		self.key = key
-		self.value = value
-
-
 class Task:
 	"""Represents a single task"""
 
-	def __init__(self, title, parent, notes):
+	def __init__(self, title, notes = None, parent = None):
+
+		if title is None:
+			raise ValueError("Task cannot be created without a Title")
+
 		self.title = title
-		self.updated = None
-		self.parent = parent
 		self.children = []
 		self.notes = notes
-		self.due = None
-		self.completed = None
-		self.deleted = False
-		self.hidden = False
-		self.attributes = [] #List of TaskAttribute
+		self.complete = False
+		self.virtual = False
+		self.attributes = {}
+
+		self.parent = None
+		if parent is not None:
+			parent.add_child(self)
 
 
 	def __str__(self):
@@ -30,15 +27,32 @@ class Task:
 		if self.notes is not None:
 			result += ' [' + self.notes + ']'
 
-		if self.completed is not None:
+		if self.complete is not None:
 			result += ' (Completed)'
 
 		return result
 
+	@classmethod
+	def create_virtual_task(cls):
+		"""Creates a virtual task, i.e. a task that serves only as the root of a tree or list of tasks"""
+
+		t = Task('')
+		t.title = None
+		t.virtual = True
+
+		return t
+
+
 	def add_attribute(self, key, value):
 		"""Adds an atribute to the attribute list"""
 
-		self.attributes.append(TaskAttribute(key, value))
+		if self.virtual:
+			raise Exception("Virtual tasks cannot have attributes")
+
+		if key in self.attributes:
+			raise KeyError("Attribute {0} already exists".format(key))
+
+		self.attributes[key] = value
 
 	def add_attribute_list(self, attrList):
 		"""Adds a whole list of attributes to the task's attribute list.
@@ -48,32 +62,24 @@ class Task:
 			e.g. [[key1, value1], [key2, value2], [key3, value3]]
 		"""
 		for kvPair in attrList:
-			self.attributes.append(TaskAttribute(kvPair[0], kvPair[1]))
+			self.add_attribute(kvPair[0], kvPair[1])
+
 
 	def add_child(self, task):
 		""" Adds a child task, if it doesn't already have a parent """
 
-		if task.parent is None:
-			task.parent = self
-			self.children.append(task)
+		if not task.virtual:
+			if task.parent is None:
+				task.parent = self
+				self.children.append(task)
+			else:
+				raise Exception("Task already has a parent")
 		else:
-			raise Exception("Task already has a parent")
+			raise Exception("Virtual tasks cannot have parents")
 
-class TaskList:
-	"""Represents a Task List, as defined in the Google Tasks API.
+	
+	def add_children(self, children):
+		"""Adds a list of children at once"""
 
-	A Task list contains tasks."""
-
-	def __init__(self, title):
-		self.title = title
-		self.items = []
-
-	def __str__(self):
-		result = 'Tasks:\n'
-		for task in self.items:
-			result += ' ' + str(task) + ',\n'
-		result = result[:-1] #Remove the last comma
-		return result
-
-	def append(self, task):
-		self.items.append(task)
+		for child in children:
+			self.add_child(child)

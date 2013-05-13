@@ -73,10 +73,10 @@ def readFile(path):
 			#Create the task object
 			if line.startswith("- "): #It's a regular task
 				taskParts = parseTask(line[2:])
-				task = Task(taskParts[TITLE], parent, deepness, '')
+				task = Task(taskParts[TITLE], '', parent)
 				task.addAttributeList(taskParts[TAGS])
 			else:	#It's a project
-				task = Task(line[:-1], parent, deepness, '') #Remove ':' from the task title
+				task = Task(line[:-1], '', parent) #Remove ':' from the task title
 				task.addAttribute(properties.TASKPAPER_ISPROJECT_ATTR, '') #Mark it as a project
 
 		else:
