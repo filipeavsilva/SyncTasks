@@ -5,3 +5,4 @@ dependencies.txt
 tasks.dat
 *.un~
 env
+Makefile
