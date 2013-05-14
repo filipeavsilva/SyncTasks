@@ -169,3 +169,12 @@ class TasksTestCase(TestCase):
 		
 		assert_raises(Exception, virt.add_attribute, self.attr_key, self.attr_value)
 
+
+	def test_adding_multiple_attributes_to_virtual_task(self):
+		"""Test adding multiple attributes to a virtual task"""
+
+		virt = Task.create_virtual_task()
+		
+		assert_raises(Exception, virt.add_attribute_list, [[self.attr_key,
+			self.attr_value], [self.attr_value, self.attr_key], [self.attr_key + '2',
+				self.attr_value]])
