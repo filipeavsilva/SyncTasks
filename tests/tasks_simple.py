@@ -101,13 +101,27 @@ class TasksTestCase(TestCase):
 
 
 	def test_create_virtual_task(self):
-		"""Test creating a regular virtual task"""
+		"""Test creating a regular virtual task without a title"""
 
 		virt = Task.create_virtual_task()
 
 		assert_equals(virt.parent, None)
 		assert_equals(virt.virtual, True)
 		assert_equals(virt.title, None)
+		assert_equals(virt.notes, None)
+		assert_equal(virt.complete, False)
+		assert_equals(virt.children, [])
+		assert_equals(virt.attributes, {})
+
+
+	def test_create_virtual_task_with_title(self):
+		"""Test creating a regular virtual task with a title"""
+
+		virt = Task.create_virtual_task(self.title)
+
+		assert_equals(virt.parent, None)
+		assert_equals(virt.virtual, True)
+		assert_equals(virt.title, self.title)
 		assert_equals(virt.notes, None)
 		assert_equal(virt.complete, False)
 		assert_equals(virt.children, [])

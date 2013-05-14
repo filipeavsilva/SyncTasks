@@ -33,11 +33,11 @@ class Task:
 		return result
 
 	@classmethod
-	def create_virtual_task(cls):
+	def create_virtual_task(cls, title = None):
 		"""Creates a virtual task, i.e. a task that serves only as the root of a tree or list of tasks"""
 
 		t = Task('')
-		t.title = None
+		t.title = title
 		t.virtual = True
 
 		return t
